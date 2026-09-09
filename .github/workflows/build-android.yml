@@ -147,7 +147,8 @@ jobs:
             buildozer.spec
 
           # Keep the Android Python runtime pinned to the tested 3.11 recipe.
-          grep -q 'python3==3.11.10,hostpython3==3.11.10' buildozer.spec
+          grep -q 'python3==3.11.10' buildozer.spec
+          ! grep -Eq 'python3==3\.(12|13|14|15)' buildozer.spec
 
           echo "========================================"
           echo "         BUILDOWER SPEC"
