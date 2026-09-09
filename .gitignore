@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.buildozer/
+bin/
+.venv/
+venv/
+.env
+mobile/runtime_config.json
