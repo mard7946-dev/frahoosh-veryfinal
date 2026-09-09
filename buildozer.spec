@@ -1,66 +1,227 @@
-[app]
+from kivy.app import App
+from kivy.core.window import Window
+from kivy.uix.screenmanager import (
+    ScreenManager,
+    FadeTransition,
+)
+from kivy.clock import Clock
 
-title = Frahoosh
-package.name = frahoosh
-package.domain = ir.frahoosh
-
-source.dir = .
-
-source.include_exts = py,png,jpg,jpeg,kv,atlas,json,txt,ttf,otf,ico,svg
-
-source.exclude_exts = spec
-
-source.exclude_dirs = bin,.buildozer,.git,__pycache__,tests
+from mobile.ui import register_fonts
 
 
-version = 1.1.1
-android.numeric_version = 2
+class FrahooshMobileApp(App):
+
+    title = "فراهوش"
+
+    def build(self):
+
+        Window.clearcolor = (
+            0.965,
+            0.975,
+            0.985,
+            1
+        )
+
+        print("FRAHOOSH START")
 
 
-requirements = python3==3.11.10,kivy==2.3.1,arabic-reshaper==3.0.0,python-bidi==0.6.6
+        # -------------------------
+        # Fonts
+        # -------------------------
+
+        try:
+            register_fonts()
+
+            print(
+                "FONT READY"
+            )
+
+        except Exception as exc:
+            print(
+                "FONT REGISTER ERROR:",
+                repr(exc)
+            )
 
 
-orientation = portrait
+        # -------------------------
+        # App State
+        # -------------------------
 
-fullscreen = 0
+        self.state = None
 
+        try:
 
-android.api = 35
-android.minapi = 24
+            from mobile.services.app_state import AppState
 
-android.ndk = 28c
-android.ndk_api = 24
+            self.state = AppState()
 
+            print(
+                "APP STATE READY"
+            )
 
-android.archs = arm64-v8a
+        except Exception as exc:
 
-
-android.private_storage = True
-
-
-android.skip_update = True
-
-android.accept_sdk_license = True
-
-
-android.permissions = INTERNET,ACCESS_NETWORK_STATE
+            print(
+                "APP STATE ERROR:",
+                repr(exc)
+            )
 
 
-android.enable_androidx = True
+        # -------------------------
+        # Screen Manager
+        # -------------------------
+
+        manager = ScreenManager(
+            transition=FadeTransition(
+                duration=0.15
+            )
+        )
 
 
-android.entrypoint = org.kivy.android.PythonActivity
+        # -------------------------
+        # Safe Screen Loader
+        # -------------------------
+
+        def add_screen(
+            screen_class,
+            module_path,
+            screen_name
+        ):
+
+            try:
+
+                module = __import__(
+                    module_path,
+                    fromlist=[
+                        screen_class
+                    ]
+                )
+
+                cls = getattr(
+                    module,
+                    screen_class
+                )
+
+                screen = cls(
+                    self.state,
+                    name=screen_name
+                )
+
+                manager.add_widget(
+                    screen
+                )
+
+                print(
+                    screen_name.upper(),
+                    "SCREEN READY"
+                )
+
+                return True
 
 
-p4a.bootstrap = sdl2
+            except Exception as exc:
 
-p4a.fork = kivy
-p4a.branch = v2026.05.09
+                import traceback
+
+                traceback.print_exc()
+
+                print(
+                    screen_name.upper(),
+                    "LOAD ERROR:",
+                    type(exc).__name__,
+                    str(exc)
+                )
+
+                return False
 
 
 
-[buildozer]
+        # -------------------------
+        # Screens
+        # -------------------------
 
-log_level = 2
+        # Loading must be the first screen so session restoration
+        # never jumps directly into a half-initialized dashboard.
+        add_screen(
+            "LoadingScreen",
+            "mobile.screens.loading",
+            "loading"
+        )
 
-warn_on_root = 1
+        add_screen(
+            "LoginScreen",
+            "mobile.screens.login",
+            "login"
+        )
+
+
+        add_screen(
+            "DashboardScreen",
+            "mobile.screens.dashboard",
+            "dashboard"
+        )
+
+
+        add_screen(
+            "ModuleScreen",
+            "mobile.screens.module",
+            "module"
+        )
+
+
+        add_screen(
+            "UpdateScreen",
+            "mobile.screens.update",
+            "update"
+        )
+
+
+        # -------------------------
+        # Start Screen
+        # -------------------------
+
+        if manager.has_screen(
+            "loading"
+        ):
+
+            manager.current = "loading"
+
+        elif manager.has_screen(
+            "login"
+        ):
+
+            manager.current = "login"
+
+        elif manager.screen_names:
+
+            manager.current = (
+                manager.screen_names[0]
+            )
+
+
+        print(
+            "AVAILABLE SCREENS:",
+            manager.screen_names
+        )
+
+
+        # -------------------------
+        # Startup Check
+        # -------------------------
+
+        Clock.schedule_once(
+            lambda dt:
+            print(
+                "FRAHOOSH READY"
+            ),
+            1
+        )
+
+
+        return manager
+
+
+
+if __name__ == "__main__":
+
+    FrahooshMobileApp().run()                                    
