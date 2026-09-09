@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="96" fill="#0f172a"/>
-<circle cx="256" cy="220" r="120" fill="#1e3a8a"/>
-<path d="M150 310c45-48 167-48 212 0" fill="none" stroke="#22c55e" stroke-width="28" stroke-linecap="round"/>
-<text x="256" y="405" text-anchor="middle" font-family="sans-serif" font-size="58" font-weight="700" fill="white">فراهوش</text>
-</svg>
