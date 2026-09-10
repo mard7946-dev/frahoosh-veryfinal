@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip setuptools wheel virtualenv
-          python -m pip install "cython==3.0.12" "buildozer==1.5.0"
+          python -m pip install "cython==0.29.36" "buildozer==1.5.0"
           buildozer --version
           cython --version
           python -c "import Cython, setuptools, wheel; print('Cython', Cython.__version__); print('setuptools', setuptools.__version__); print('wheel', wheel.__version__)"
