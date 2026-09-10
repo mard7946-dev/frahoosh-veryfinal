@@ -7,7 +7,7 @@ source.dir = .
 source.main = main.py
 version = 1.0
 
-requirements = python3==3.11.10,hostpython3==3.11.10,kivy==2.3.1,arabic-reshaper==3.0.0,python-bidi==0.6.6
+requirements = python3==3.11.10,hostpython3==3.11.10,kivy==2.3.1,arabic-reshaper==3.0.1,python-bidi==0.6.6
 orientation = portrait
 
 icon.filename = %(source.dir)s/mobile/assets/frahoosh_logo.png
