@@ -126,7 +126,6 @@ ROLE_MENU = {
         ("درباره برنامه", "about"),
     ],
 
-    id="r2s9kq"
     "cultural": [
         ("معاون پرورشی", "cultural"),
         ("فعالیت‌های فرهنگی", "cultural_activity"),
