@@ -26,7 +26,7 @@ version = 1.0
 
 # (list) Application requirements
 
-requirements = python3==3.11.10,kivy==2.3.1,arabic-reshaper==3.0.0,python-bidi==0.6.6
+requirements = python3==3.11.10,hostpython3==3.11.10,kivy==2.3.1,arabic-reshaper==3.0.0,python-bidi==0.6.6
 
 # (str) Supported orientation
 
@@ -111,5 +111,3 @@ android.ndk_path =
 # (str) Log level
 
 log_level = 2
-
-                    
