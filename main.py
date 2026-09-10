@@ -1,227 +1,64 @@
 from kivy.app import App
 from kivy.core.window import Window
-from kivy.uix.screenmanager import (
-    ScreenManager,
-    FadeTransition,
-)
+from kivy.uix.screenmanager import ScreenManager, FadeTransition
 from kivy.clock import Clock
-
 from mobile.ui import register_fonts
 
 
 class FrahooshMobileApp(App):
-
     title = "فراهوش"
 
     def build(self):
-
-        Window.clearcolor = (
-            0.965,
-            0.975,
-            0.985,
-            1
-        )
-
+        Window.clearcolor = (0.965, 0.975, 0.985, 1)
         print("FRAHOOSH START")
-
-
-        # -------------------------
-        # Fonts
-        # -------------------------
 
         try:
             register_fonts()
-
-            print(
-                "FONT READY"
-            )
-
+            print("FONT READY")
         except Exception as exc:
-            print(
-                "FONT REGISTER ERROR:",
-                repr(exc)
-            )
-
-
-        # -------------------------
-        # App State
-        # -------------------------
+            print("FONT REGISTER ERROR:", repr(exc))
 
         self.state = None
-
         try:
-
             from mobile.services.app_state import AppState
-
             self.state = AppState()
-
-            print(
-                "APP STATE READY"
-            )
-
+            print("APP STATE READY")
         except Exception as exc:
+            print("APP STATE ERROR:", repr(exc))
 
-            print(
-                "APP STATE ERROR:",
-                repr(exc)
-            )
+        manager = ScreenManager(transition=FadeTransition(duration=0.15))
 
-
-        # -------------------------
-        # Screen Manager
-        # -------------------------
-
-        manager = ScreenManager(
-            transition=FadeTransition(
-                duration=0.15
-            )
-        )
-
-
-        # -------------------------
-        # Safe Screen Loader
-        # -------------------------
-
-        def add_screen(
-            screen_class,
-            module_path,
-            screen_name
-        ):
-
+        def add_screen(screen_class, module_path, screen_name):
             try:
-
-                module = __import__(
-                    module_path,
-                    fromlist=[
-                        screen_class
-                    ]
-                )
-
-                cls = getattr(
-                    module,
-                    screen_class
-                )
-
-                screen = cls(
-                    self.state,
-                    name=screen_name
-                )
-
-                manager.add_widget(
-                    screen
-                )
-
-                print(
-                    screen_name.upper(),
-                    "SCREEN READY"
-                )
-
+                module = __import__(module_path, fromlist=[screen_class])
+                cls = getattr(module, screen_class)
+                screen = cls(self.state, name=screen_name)
+                manager.add_widget(screen)
+                print(screen_name.upper(), "SCREEN READY")
                 return True
-
-
             except Exception as exc:
-
                 import traceback
-
                 traceback.print_exc()
-
-                print(
-                    screen_name.upper(),
-                    "LOAD ERROR:",
-                    type(exc).__name__,
-                    str(exc)
-                )
-
+                print(screen_name.upper(), "LOAD ERROR:", type(exc).__name__, str(exc))
                 return False
 
+        add_screen("LoadingScreen", "mobile.screens.loading", "loading")
+        add_screen("LoginScreen", "mobile.screens.login", "login")
+        add_screen("DashboardScreen", "mobile.screens.dashboard_final", "dashboard")
+        add_screen("ModuleScreen", "mobile.screens.module", "module")
+        add_screen("UpdateScreen", "mobile.screens.update", "update")
 
-
-        # -------------------------
-        # Screens
-        # -------------------------
-
-        # Loading must be the first screen so session restoration
-        # never jumps directly into a half-initialized dashboard.
-        add_screen(
-            "LoadingScreen",
-            "mobile.screens.loading",
-            "loading"
-        )
-
-        add_screen(
-            "LoginScreen",
-            "mobile.screens.login",
-            "login"
-        )
-
-
-        add_screen(
-            "DashboardScreen",
-            "mobile.screens.dashboard",
-            "dashboard"
-        )
-
-
-        add_screen(
-            "ModuleScreen",
-            "mobile.screens.module",
-            "module"
-        )
-
-
-        add_screen(
-            "UpdateScreen",
-            "mobile.screens.update",
-            "update"
-        )
-
-
-        # -------------------------
-        # Start Screen
-        # -------------------------
-
-        if manager.has_screen(
-            "loading"
-        ):
-
+        if manager.has_screen("loading"):
             manager.current = "loading"
-
-        elif manager.has_screen(
-            "login"
-        ):
-
+        elif manager.has_screen("login"):
             manager.current = "login"
-
         elif manager.screen_names:
+            manager.current = manager.screen_names[0]
 
-            manager.current = (
-                manager.screen_names[0]
-            )
-
-
-        print(
-            "AVAILABLE SCREENS:",
-            manager.screen_names
-        )
-
-
-        # -------------------------
-        # Startup Check
-        # -------------------------
-
-        Clock.schedule_once(
-            lambda dt:
-            print(
-                "FRAHOOSH READY"
-            ),
-            1
-        )
-
-
+        print("AVAILABLE SCREENS:", manager.screen_names)
+        Clock.schedule_once(lambda dt: print("FRAHOOSH READY"), 1)
         return manager
 
 
-
 if __name__ == "__main__":
-
-    FrahooshMobileApp().run()                                    
+    FrahooshMobileApp().run()
