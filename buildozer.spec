@@ -5,12 +5,11 @@ package.name = frahoosh
 package.domain = org.frahoosh
 source.dir = .
 source.main = main.py
-version = 1.0
+version = 1.1.3
 
-# Keep the proven dependency strategy from the previously green build.
-# Do not pin packages that python-for-android also resolves internally.
-requirements = python3,kivy,requests,urllib3,arabic-reshaper,python-bidi
+requirements = python3==3.11.10,kivy==2.3.1,arabic-reshaper==3.0.0,python-bidi==0.6.6
 orientation = portrait
+fullscreen = 0
 
 icon.filename = %(source.dir)s/mobile/assets/frahoosh_logo.png
 source.include_exts = py,png,jpg,jpeg,kv,atlas,json,ttf,svg
@@ -26,5 +25,4 @@ android.permissions = INTERNET
 android.presplash_color = #000000
 android.accept_sdk_license = True
 
-fullscreen = 0
 log_level = 2
