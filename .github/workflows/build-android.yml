@@ -104,6 +104,8 @@ jobs:
           grep -q '^android.api = 35' buildozer.spec
           grep -q '^android.ndk = 28c' buildozer.spec
           grep -q '^android.ndk_api = 23' buildozer.spec
+          grep -q '^android.minapi = 23' buildozer.spec
+          grep -q '^source.main = main.py' buildozer.spec
 
       - name: Prepare runtime configuration
         shell: bash
