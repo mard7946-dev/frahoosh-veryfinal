@@ -554,3 +554,177 @@ class DashboardScreen(Screen):
         self.add_widget(
             root
         )
+
+    def open_module(
+        self,
+        module
+    ):
+
+        print(
+            "OPEN MODULE:",
+            module
+        )
+
+
+        if not self.manager:
+
+            return
+
+
+        if self.manager.has_screen(
+            "module"
+        ):
+
+            module_screen = (
+                self.manager.get_screen(
+                    "module"
+                )
+            )
+
+
+            try:
+
+                module_screen.load_module(
+                    module,
+                    self.user
+                )
+
+            except Exception as exc:
+
+                print(
+                    "MODULE LOAD ERROR:",
+                    exc
+                )
+
+
+            self.manager.current = (
+                "module"
+            )
+
+
+        else:
+
+            print(
+                "MODULE SCREEN NOT FOUND"
+            )
+
+
+
+    def refresh(
+        self
+    ):
+
+        print(
+            "REFRESH DASHBOARD"
+        )
+
+        self.load_user()
+
+
+
+    def logout(
+        self
+    ):
+
+        print(
+            "LOGOUT"
+        )
+
+
+        try:
+
+            if self.app_state:
+
+                self.app_state.user = None
+
+                self.app_state.session = None
+
+
+        except Exception as exc:
+
+            print(
+                "LOGOUT ERROR:",
+                exc
+            )
+
+
+        if self.manager:
+
+            if self.manager.has_screen(
+                "login"
+            ):
+
+                self.manager.current = (
+                    "login"
+                )
+
+    def update_user(
+        self,
+        user
+    ):
+
+        """
+        بروزرسانی کاربر فعلی
+        """
+
+        self.user = user
+
+        self.create_dashboard()
+
+
+
+    def show_error(
+        self,
+        message
+    ):
+
+        print(
+            "DASHBOARD ERROR:",
+            message
+        )
+
+
+
+    def get_user_name(
+        self
+    ):
+
+        if not self.user:
+
+            return "کاربر"
+
+
+        return (
+
+            self.user.get(
+                "full_name"
+            )
+
+            or
+
+            self.user.get(
+                "name"
+            )
+
+            or
+
+            self.user.get(
+                "email"
+            )
+
+            or
+
+            "کاربر"
+
+        )
+
+
+
+    def get_role_title(
+        self
+    ):
+
+        return ROLE_TITLES.get(
+            self.role,
+            "کاربر"
+        )
