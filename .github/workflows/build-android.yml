@@ -3,7 +3,8 @@ name: Frahoosh Android Build
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
@@ -17,7 +18,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.10"
+          python-version: "3.10"
           cache: pip
 
       - name: Setup Java
@@ -29,94 +30,160 @@ jobs:
       - name: System dependencies
         run: |
           set -euxo pipefail
-          sudo apt-get update
-          sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential cmake
 
-      - name: Python build tools
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            git \
+            zip \
+            unzip \
+            wget \
+            curl \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libffi-dev \
+            libssl-dev \
+            build-essential \
+            cmake
+
+      - name: Install Python build tools
         run: |
           set -euxo pipefail
-          python -m pip install --upgrade pip setuptools wheel virtualenv
-          python -m pip install "cython==0.29.36" "buildozer==1.5.0"
+
+          python -m pip install --upgrade pip
+          python -m pip install \
+            "setuptools<70" \
+            wheel \
+            "cython==0.29.37" \
+            "buildozer==1.5.0"
+
+          python --version
+          pip --version
+          cython --version
           buildozer --version
 
-      - name: Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
           cmdline-tools-version: 12266719
           accept-android-sdk-licenses: true
-          packages: tools platform-tools
+          packages: |
+            platform-tools
+            platforms;android-34
+            build-tools;34.0.0
+            ndk;25.2.9519653
 
-      - name: Install Android packages
+      - name: Configure Android environment
+        shell: bash
         run: |
           set -euxo pipefail
+
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+
           test -n "$SDK"
-          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-          test -x "$SDKMANAGER"
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;25.2.9519653"
+          test -d "$SDK"
+
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$SDK/ndk/25.2.9519653" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$SDK/ndk/25.2.9519653" >> "$GITHUB_ENV"
+
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK/build-tools/34.0.0" >> "$GITHUB_PATH"
+
           test -x "$SDK/platform-tools/adb"
-          test -x "$SDK/build-tools/35.0.0/aapt"
-          test -d "$SDK/platforms/android-35"
+          test -x "$SDK/build-tools/34.0.0/aapt"
+          test -d "$SDK/platforms/android-34"
           test -d "$SDK/ndk/25.2.9519653"
-          {
-            echo "ANDROID_HOME=$SDK"
-            echo "ANDROID_SDK_ROOT=$SDK"
-            echo "ANDROIDSDK=$SDK"
-            echo "ANDROID_NDK_HOME=$SDK/ndk/25.2.9519653"
-            echo "ANDROID_NDK_ROOT=$SDK/ndk/25.2.9519653"
-          } >> "$GITHUB_ENV"
 
-      - name: Prepare clean Buildozer state
+          echo "Android SDK: $SDK"
+          echo "Android NDK: $SDK/ndk/25.2.9519653"
+
+      - name: Clean Buildozer state
+        shell: bash
         run: |
           set -euxo pipefail
-          rm -rf bin .buildozer
+
+          rm -rf bin
+          rm -rf .buildozer
+
           mkdir -p "$HOME/.buildozer/android/platform"
-
-      - name: Prepare Buildozer SDK bridge
-        run: |
-          set -euxo pipefail
-          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-          BD_SDK="$HOME/.buildozer/android/platform/android-sdk"
-          ln -s "$SDK" "$BD_SDK"
-          mkdir -p "$SDK/tools/bin"
-          ln -sfn "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
 
       - name: Prepare runtime configuration
         env:
           FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
-          FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
+          FRAHOOSh_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
           FRAHOOSH_SCHOOL_ID: ${{ vars.FRAHOOSH_SCHOOL_ID }}
           FRAHOOSH_SCHOOL_NAME: ${{ vars.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ vars.FRAHOOSH_SCHOOL_YEAR }}
+
         run: |
           set -euxo pipefail
+
           python - <<'PY'
-          import json, os
+          import json
+          import os
           from pathlib import Path
-          required = [
-              "FRAHOOSH_SUPABASE_URL",
-              "FRAHOOSH_SUPABASE_ANON_KEY",
-              "FRAHOOSH_SCHOOL_ID",
-              "FRAHOOSH_SCHOOL_NAME",
-              "FRAHOOSH_SCHOOL_YEAR",
-          ]
-          missing = [k for k in required if not os.environ.get(k)]
+
+          required = {
+              "FRAHOOSH_SUPABASE_URL": os.environ.get("FRAHOOSH_SUPABASE_URL"),
+              "FRAHOOSH_SUPABASE_ANON_KEY": os.environ.get("FRAHOOSh_SUPABASE_ANON_KEY"),
+              "FRAHOOSH_SCHOOL_ID": os.environ.get("FRAHOOSH_SCHOOL_ID"),
+              "FRAHOOSH_SCHOOL_NAME": os.environ.get("FRAHOOSH_SCHOOL_NAME"),
+              "FRAHOOSH_SCHOOL_YEAR": os.environ.get("FRAHOOSH_SCHOOL_YEAR"),
+          }
+
+          missing = [key for key, value in required.items() if not value]
+
           if missing:
-              raise SystemExit("Missing GitHub configuration: " + ", ".join(missing))
+              raise SystemExit(
+                  "Missing GitHub configuration: " + ", ".join(missing)
+              )
+
           Path("mobile/runtime_config.json").write_text(
-              json.dumps({k: os.environ[k] for k in required}, ensure_ascii=False, indent=2),
-              encoding="utf-8"
+              json.dumps(required, ensure_ascii=False, indent=2),
+              encoding="utf-8",
           )
+
+          print("Runtime configuration created successfully.")
           PY
 
-      - name: Validate Python
-        run: python -m compileall -q mobile main.py
+      - name: Validate Python source
+        run: |
+          set -euxo pipefail
+          python -m compileall -q mobile main.py
+
+      - name: Show Buildozer configuration
+        run: |
+          set -euxo pipefail
+
+          echo "========== buildozer.spec =========="
+          sed -n '1,240p' buildozer.spec
+
+          echo "========== Android environment =========="
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
 
       - name: Build APK
         shell: bash
         run: |
           set -o pipefail
-          buildozer -v android debug 2>&1 | tee buildozer.log
+
+          buildozer android debug 2>&1 | tee buildozer.log
+
+      - name: Show build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          echo "========== LAST 300 LINES OF BUILD LOG =========="
+          if [ -f buildozer.log ]; then
+            tail -n 300 buildozer.log
+          fi
 
       - name: Upload build log
         if: failure()
@@ -127,10 +194,18 @@ jobs:
           retention-days: 7
 
       - name: Verify APK
+        shell: bash
         run: |
           set -euxo pipefail
+
           test -d bin
-          test -n "$(find bin -name '*.apk' -print -quit)"
+
+          APK="$(find bin -maxdepth 1 -type f -name '*.apk' -print -quit)"
+
+          test -n "$APK"
+
+          echo "APK created successfully:"
+          echo "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
