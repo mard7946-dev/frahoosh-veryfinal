@@ -4,12 +4,15 @@ from kivy.uix.screenmanager import Screen
 from kivy.clock import Clock
 
 from mobile.services.api import APIService
-from mobile.services.session import SessionManager
 
 
 class LoginScreen(Screen):
 
-    def __init__(self, app_state=None, **kwargs):
+    def __init__(
+        self,
+        app_state=None,
+        **kwargs
+    ):
 
         super().__init__(**kwargs)
 
@@ -17,13 +20,17 @@ class LoginScreen(Screen):
 
         self.api = APIService()
 
-        self.session = SessionManager()
 
 
     def login(self):
 
-        national_code = self.ids.national_code.text.strip()
-        password = self.ids.password.text.strip()
+        national_code = (
+            self.ids.national_code.text.strip()
+        )
+
+        password = (
+            self.ids.password.text.strip()
+        )
 
 
         if not national_code or not password:
@@ -101,38 +108,64 @@ class LoginScreen(Screen):
 
 
 
-            self.session.save_session(
-                {
-                    "access_token":
-                        access_token,
+            user = result.get(
+                "user",
+                {}
+            )
 
-                    "refresh_token":
-                        refresh_token,
 
-                    "user":
-                        result.get(
-                            "user"
-                        )
-                }
+            profile = result.get(
+                "profile",
+                {}
             )
 
 
 
+            session_payload = {
+
+                "access_token":
+                    access_token,
+
+                "refresh_token":
+                    refresh_token,
+
+                "user":
+                    user,
+
+                "profile":
+                    profile
+
+            }
+
+
+
+            # ذخیره Session اصلی
             if self.app_state:
 
-                self.app_state.session = result
-
-                self.app_state.user = (
-                    result.get(
-                        "user"
+                saved = (
+                    self.app_state.set_session(
+                        session_payload
                     )
                 )
+
+
+                if not saved:
+
+                    Clock.schedule_once(
+                        lambda dt:
+                        self.show_message(
+                            "ذخیره نشست کاربر ناموفق بود"
+                        )
+                    )
+
+                    return
 
 
 
             Clock.schedule_once(
                 self.open_dashboard
             )
+
 
 
         except Exception as exc:
@@ -142,7 +175,8 @@ class LoginScreen(Screen):
                 lambda dt:
                 self.show_message(
                     "خطا در اتصال: "
-                    + str(exc)
+                    +
+                    str(exc)
                 )
             )
 
@@ -178,10 +212,12 @@ class LoginScreen(Screen):
             text
         )
 
+
         try:
 
             self.ids.message.text = text
 
-        except:
+
+        except Exception:
 
             pass
