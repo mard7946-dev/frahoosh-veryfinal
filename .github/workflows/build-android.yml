@@ -1,10 +1,9 @@
 name: Frahoosh Android Build
 
-"on":
+on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
@@ -12,17 +11,14 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10.13"
+          python-version: "3.11.10"
           cache: pip
-
 
       - name: Setup Java
         uses: actions/setup-java@v5
@@ -30,76 +26,38 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-
-      - name: Install system dependencies
-        shell: bash
+      - name: System dependencies
         run: |
           set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            wget \
-            curl \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            zlib1g-dev \
-            libffi-dev \
-            libssl-dev \
-            build-essential \
-            cmake
+          sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential cmake
 
-
-      - name: Install Buildozer
-        shell: bash
+      - name: Python build tools
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip setuptools wheel virtualenv
           python -m pip install "cython==0.29.36" "buildozer==1.5.0"
           buildozer --version
-          cython --version
 
-
-      - name: Setup Android SDK
+      - name: Android SDK
         uses: android-actions/setup-android@v4
         with:
           cmdline-tools-version: 12266719
           accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: true
           packages: tools platform-tools
 
-
-      - name: Install Android SDK packages
-        shell: bash
+      - name: Install Android packages
         run: |
           set -euxo pipefail
-
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-
           test -n "$SDK"
-
           SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-
           test -x "$SDKMANAGER"
-
-          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
-
-          "$SDKMANAGER" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0" \
-            "ndk;25.2.9519653"
-
-
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;25.2.9519653"
           test -x "$SDK/platform-tools/adb"
           test -x "$SDK/build-tools/35.0.0/aapt"
           test -d "$SDK/platforms/android-35"
           test -d "$SDK/ndk/25.2.9519653"
-
-
           {
             echo "ANDROID_HOME=$SDK"
             echo "ANDROID_SDK_ROOT=$SDK"
@@ -108,116 +66,59 @@ jobs:
             echo "ANDROID_NDK_ROOT=$SDK/ndk/25.2.9519653"
           } >> "$GITHUB_ENV"
 
-
+      - name: Prepare clean Buildozer state
+        run: |
+          set -euxo pipefail
+          rm -rf bin .buildozer
+          mkdir -p "$HOME/.buildozer/android/platform"
 
       - name: Prepare Buildozer SDK bridge
-        shell: bash
         run: |
           set -euxo pipefail
-
           SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-
-          BD_ROOT="$HOME/.buildozer/android/platform"
-          BD_SDK="$BD_ROOT/android-sdk"
-
-          mkdir -p "$BD_ROOT"
-
-          rm -rf "$BD_SDK"
-
+          BD_SDK="$HOME/.buildozer/android/platform/android-sdk"
           ln -s "$SDK" "$BD_SDK"
-
           mkdir -p "$SDK/tools/bin"
-
-          ln -sfn \
-            "$SDK/cmdline-tools/latest/bin/sdkmanager" \
-            "$SDK/tools/bin/sdkmanager"
-
-
-
-      - name: Prepare Buildozer configuration
-        shell: bash
-        run: |
-          set -euxo pipefail
-
-          test -f buildozer.spec
-
-          sed -i '/^[[:space:]]*android\.skip_update[[:space:]]*=/d' buildozer.spec
-
-          grep -Eq '^requirements = .*python3.*kivy.*requests.*urllib3.*arabic-reshaper.*python-bidi' buildozer.spec
-
-          grep -q '^android.api = 35' buildozer.spec
-
-          grep -q '^android.ndk = 25c' buildozer.spec
-
-          grep -q '^android.ndk_api = 23' buildozer.spec
-
-
+          ln -sfn "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/tools/bin/sdkmanager"
 
       - name: Prepare runtime configuration
-        shell: bash
         env:
           FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
           FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
           FRAHOOSH_SCHOOL_ID: ${{ vars.FRAHOOSH_SCHOOL_ID }}
           FRAHOOSH_SCHOOL_NAME: ${{ vars.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ vars.FRAHOOSH_SCHOOL_YEAR }}
-
         run: |
           set -euxo pipefail
-
           python - <<'PY'
           import json, os
           from pathlib import Path
-
-          data = {
-              "FRAHOOSH_SUPABASE_URL": os.environ["FRAHOOSH_SUPABASE_URL"],
-              "FRAHOOSH_SUPABASE_ANON_KEY": os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
-              "FRAHOOSH_SCHOOL_ID": os.environ["FRAHOOSH_SCHOOL_ID"],
-              "FRAHOOSH_SCHOOL_NAME": os.environ["FRAHOOSH_SCHOOL_NAME"],
-              "FRAHOOSH_SCHOOL_YEAR": os.environ["FRAHOOSH_SCHOOL_YEAR"],
-          }
-
+          required = [
+              "FRAHOOSH_SUPABASE_URL",
+              "FRAHOOSH_SUPABASE_ANON_KEY",
+              "FRAHOOSH_SCHOOL_ID",
+              "FRAHOOSH_SCHOOL_NAME",
+              "FRAHOOSH_SCHOOL_YEAR",
+          ]
+          missing = [k for k in required if not os.environ.get(k)]
+          if missing:
+              raise SystemExit("Missing GitHub configuration: " + ", ".join(missing))
           Path("mobile/runtime_config.json").write_text(
-              json.dumps(data, ensure_ascii=False, indent=2),
+              json.dumps({k: os.environ[k] for k in required}, ensure_ascii=False, indent=2),
               encoding="utf-8"
           )
           PY
 
+      - name: Validate Python
+        run: python -m compileall -q mobile main.py
 
-
-      - name: Validate Python sources
+      - name: Build APK
         shell: bash
         run: |
-          set -euxo pipefail
-          python -m compileall -q mobile main.py
-
-
-
-      - name: Clean Buildozer state
-        shell: bash
-        run: |
-          set -euxo pipefail
-          rm -rf bin .buildozer
-
-
-
-      - name: Build Frahoosh APK
-        shell: bash
-        run: |
-          set -uo pipefail
-          set +e
-
+          set -o pipefail
           buildozer -v android debug 2>&1 | tee buildozer.log
 
-          rc=${PIPESTATUS[0]}
-
-          echo "Buildozer exit code: $rc"
-
-          exit "$rc"
-
-
-
-      - name: Upload build log on failure
+      - name: Upload build log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -225,24 +126,15 @@ jobs:
           path: buildozer.log
           retention-days: 7
 
-
-
       - name: Verify APK
-        if: success()
-        shell: bash
         run: |
           set -euxo pipefail
-
           test -d bin
+          test -n "$(find bin -name '*.apk' -print -quit)"
 
-          find bin -name "*.apk" -print
-
-
-
-      - name: Upload APK artifact
-        if: success()
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: frahoosh-apk
           path: bin/*.apk
-          retention-days: 14       
+          retention-days: 14
