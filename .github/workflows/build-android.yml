@@ -18,11 +18,11 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14.2"
+          python-version: "3.11.10"
           cache: pip
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -39,12 +39,12 @@ jobs:
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip
-          python -m pip install "cython==3.1.4" "buildozer==1.5.0"
+          python -m pip install "cython==0.29.36" "buildozer==1.5.0"
           buildozer --version
           cython --version
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           cmdline-tools-version: 12266719
           accept-android-sdk-licenses: true
@@ -99,9 +99,8 @@ jobs:
           set -euxo pipefail
           test -f buildozer.spec
           sed -i '/^[[:space:]]*android\.skip_update[[:space:]]*=/d' buildozer.spec
-          grep -q 'python3==3.14.2' buildozer.spec
-          grep -q 'hostpython3==3.14.2' buildozer.spec
-          cat buildozer.spec
+          grep -q 'python3==3.11.10' buildozer.spec
+          grep -q 'hostpython3==3.11.10' buildozer.spec
 
       - name: Prepare runtime configuration
         shell: bash
@@ -113,24 +112,25 @@ jobs:
           FRAHOOSH_SCHOOL_YEAR: ${{ vars.FRAHOOSH_SCHOOL_YEAR }}
         run: |
           set -euxo pipefail
+          test -n "$FRAHOOSH_SUPABASE_URL"
+          test -n "$FRAHOOSH_SUPABASE_ANON_KEY"
+          test -n "$FRAHOOSH_SCHOOL_ID"
+          test -n "$FRAHOOSH_SCHOOL_NAME"
+          test -n "$FRAHOOSH_SCHOOL_YEAR"
           python - <<'PY'
           import json, os
           from pathlib import Path
           data = {
-              "FRAHOOSH_SUPABASE_URL": os.getenv("FRAHOOSH_SUPABASE_URL", "").strip(),
-              "FRAHOOSH_SUPABASE_ANON_KEY": os.getenv("FRAHOOSH_SUPABASE_ANON_KEY", "").strip(),
-              "FRAHOOSH_SCHOOL_ID": os.getenv("FRAHOOSH_SCHOOL_ID", "frahoosh-school").strip() or "frahoosh-school",
-              "FRAHOOSH_SCHOOL_NAME": os.getenv("FRAHOOSH_SCHOOL_NAME", "دبیرستان سردار شهید حاجی‌زاده ۲").strip() or "دبیرستان سردار شهید حاجی‌زاده ۲",
-              "FRAHOOSH_SCHOOL_YEAR": os.getenv("FRAHOOSH_SCHOOL_YEAR", "۱۴۰۵ - ۱۴۰۶").strip() or "۱۴۰۵ - ۱۴۰۶",
+              "FRAHOOSH_SUPABASE_URL": os.environ["FRAHOOSH_SUPABASE_URL"],
+              "FRAHOOSH_SUPABASE_ANON_KEY": os.environ["FRAHOOSH_SUPABASE_ANON_KEY"],
+              "FRAHOOSH_SCHOOL_ID": os.environ["FRAHOOSH_SCHOOL_ID"],
+              "FRAHOOSH_SCHOOL_NAME": os.environ["FRAHOOSH_SCHOOL_NAME"],
+              "FRAHOOSH_SCHOOL_YEAR": os.environ["FRAHOOSH_SCHOOL_YEAR"],
           }
           Path("mobile/runtime_config.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
           PY
           python -m json.tool mobile/runtime_config.json >/dev/null
-          if [ -n "${FRAHOOSH_SUPABASE_URL:-}" ] && [ -n "${FRAHOOSH_SUPABASE_ANON_KEY:-}" ]; then
-            echo "Supabase runtime configuration: connected"
-          else
-            echo "Supabase runtime configuration: not supplied; APK build continues"
-          fi
+          echo "Supabase runtime configuration: connected"
 
       - name: Validate project files
         shell: bash
