@@ -61,7 +61,6 @@ jobs:
             "buildozer==1.5.0"
 
           python --version
-          pip --version
           cython --version
           buildozer --version
 
@@ -70,13 +69,8 @@ jobs:
         with:
           cmdline-tools-version: 12266719
           accept-android-sdk-licenses: true
-          packages: |
-            platform-tools
-            platforms;android-34
-            build-tools;34.0.0
-            ndk;25.2.9519653
 
-      - name: Configure Android environment
+      - name: Install required Android packages
         shell: bash
         run: |
           set -euxo pipefail
@@ -86,6 +80,30 @@ jobs:
           test -n "$SDK"
           test -d "$SDK"
 
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
+          test -x "$SDKMANAGER"
+
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;25.2.9519653"
+
+          test -x "$SDK/platform-tools/adb"
+          test -x "$SDK/build-tools/34.0.0/aapt"
+          test -d "$SDK/platforms/android-34"
+          test -d "$SDK/ndk/25.2.9519653"
+
+      - name: Configure Android environment
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$SDK/ndk/25.2.9519653" >> "$GITHUB_ENV"
@@ -94,14 +112,6 @@ jobs:
           echo "$SDK/platform-tools" >> "$GITHUB_PATH"
           echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$SDK/build-tools/34.0.0" >> "$GITHUB_PATH"
-
-          test -x "$SDK/platform-tools/adb"
-          test -x "$SDK/build-tools/34.0.0/aapt"
-          test -d "$SDK/platforms/android-34"
-          test -d "$SDK/ndk/25.2.9519653"
-
-          echo "Android SDK: $SDK"
-          echo "Android NDK: $SDK/ndk/25.2.9519653"
 
       - name: Clean Buildozer state
         shell: bash
@@ -116,7 +126,7 @@ jobs:
       - name: Prepare runtime configuration
         env:
           FRAHOOSH_SUPABASE_URL: ${{ secrets.FRAHOOSH_SUPABASE_URL }}
-          FRAHOOSh_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
+          FRAHOOSH_SUPABASE_ANON_KEY: ${{ secrets.FRAHOOSH_SUPABASE_ANON_KEY }}
           FRAHOOSH_SCHOOL_ID: ${{ vars.FRAHOOSH_SCHOOL_ID }}
           FRAHOOSH_SCHOOL_NAME: ${{ vars.FRAHOOSH_SCHOOL_NAME }}
           FRAHOOSH_SCHOOL_YEAR: ${{ vars.FRAHOOSH_SCHOOL_YEAR }}
@@ -131,13 +141,15 @@ jobs:
 
           required = {
               "FRAHOOSH_SUPABASE_URL": os.environ.get("FRAHOOSH_SUPABASE_URL"),
-              "FRAHOOSH_SUPABASE_ANON_KEY": os.environ.get("FRAHOOSh_SUPABASE_ANON_KEY"),
+              "FRAHOOSH_SUPABASE_ANON_KEY": os.environ.get(
+                  "FRAHOOSH_SUPABASE_ANON_KEY"
+              ),
               "FRAHOOSH_SCHOOL_ID": os.environ.get("FRAHOOSH_SCHOOL_ID"),
               "FRAHOOSH_SCHOOL_NAME": os.environ.get("FRAHOOSH_SCHOOL_NAME"),
               "FRAHOOSH_SCHOOL_YEAR": os.environ.get("FRAHOOSH_SCHOOL_YEAR"),
           }
 
-          missing = [key for key, value in required.items() if not value]
+          missing = [k for k, v in required.items() if not v]
 
           if missing:
               raise SystemExit(
@@ -174,13 +186,14 @@ jobs:
         run: |
           set -o pipefail
 
-          buildozer android debug 2>&1 | tee buildozer.log
+          buildozer -v android debug 2>&1 | tee buildozer.log
 
       - name: Show build log on failure
         if: failure()
         shell: bash
         run: |
-          echo "========== LAST 300 LINES OF BUILD LOG =========="
+          echo "========== LAST 300 LINES =========="
+
           if [ -f buildozer.log ]; then
             tail -n 300 buildozer.log
           fi
