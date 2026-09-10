@@ -32,16 +32,17 @@ jobs:
         run: |
           set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential
+          sudo apt-get install -y git zip unzip wget curl autoconf automake libtool pkg-config zlib1g-dev libffi-dev libssl-dev build-essential cmake
 
       - name: Install Buildozer
         shell: bash
         run: |
           set -euxo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install "cython==0.29.36" "buildozer==1.5.0"
+          python -m pip install --upgrade pip setuptools wheel virtualenv
+          python -m pip install "cython==3.0.12" "buildozer==1.5.0"
           buildozer --version
           cython --version
+          python -c "import Cython, setuptools, wheel; print('Cython', Cython.__version__); print('setuptools', setuptools.__version__); print('wheel', wheel.__version__)"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
@@ -156,7 +157,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          buildozer android debug
+          buildozer -v android debug
 
       - name: Verify APK
         if: success()
