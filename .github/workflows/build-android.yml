@@ -18,7 +18,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.10"
+          python-version: "3.14.2"
           cache: pip
 
       - name: Setup Java
@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euxo pipefail
           python -m pip install --upgrade pip
-          python -m pip install "cython==0.29.36" "buildozer==1.5.0"
+          python -m pip install "cython==3.1.4" "buildozer==1.5.0"
           buildozer --version
           cython --version
 
@@ -99,8 +99,8 @@ jobs:
           set -euxo pipefail
           test -f buildozer.spec
           sed -i '/^[[:space:]]*android\.skip_update[[:space:]]*=/d' buildozer.spec
-          grep -q 'python3==3.11.10' buildozer.spec
-          grep -q 'hostpython3==3.11.10' buildozer.spec
+          grep -q 'python3==3.14.2' buildozer.spec
+          grep -q 'hostpython3==3.14.2' buildozer.spec
           cat buildozer.spec
 
       - name: Prepare runtime configuration
