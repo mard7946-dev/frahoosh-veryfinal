@@ -1,171 +1,43 @@
 from kivy.app import App
-from kivy.core.window import Window
-from kivy.uix.screenmanager import (
-    ScreenManager,
-    FadeTransition,
-)
 from kivy.clock import Clock
+from kivy.core.window import Window
+from kivy.uix.screenmanager import ScreenManager, FadeTransition
 
+from mobile.config import APP_NAME, BACKGROUND
 from mobile.ui import register_fonts
+from mobile.services.app_state import AppState
 
 
 class FrahooshMobileApp(App):
-
-    title = "فراهوش"
+    title = APP_NAME
 
     def build(self):
+        Window.clearcolor = BACKGROUND
+        register_fonts()
+        self.state = AppState()
 
-        Window.clearcolor = (
-            0.965,
-            0.975,
-            0.985,
-            1
-        )
+        manager = ScreenManager(transition=FadeTransition(duration=.15))
+        self._add(manager, "mobile.screens.login", "LoginScreen", "login")
+        self._add(manager, "mobile.screens.dashboard", "DashboardScreen", "dashboard")
+        self._add(manager, "mobile.screens.module", "ModuleScreen", "module")
+        self._add(manager, "mobile.screens.update", "UpdateScreen", "update")
+        self._add(manager, "mobile.screens.loading", "LoadingScreen", "loading")
 
-        print("FRAHOOSH START")
-
-        try:
-            register_fonts()
-            print("FONT READY")
-
-        except Exception as exc:
-            print(
-                "FONT REGISTER ERROR:",
-                repr(exc)
-            )
-
-        self.state = None
-
-        try:
-            from mobile.services.app_state import AppState
-
-            self.state = AppState()
-
-            print(
-                "APP STATE READY"
-            )
-
-        except Exception as exc:
-
-            print(
-                "APP STATE ERROR:",
-                repr(exc)
-            )
-
-
-        manager = ScreenManager(
-            transition=FadeTransition(
-                duration=0.15
-            )
-        )
-
-
-        def add_screen(
-            screen_class,
-            module_path,
-            screen_name
-        ):
-
-            try:
-
-                module = __import__(
-                    module_path,
-                    fromlist=[
-                        screen_class
-                    ]
-                )
-
-                cls = getattr(
-                    module,
-                    screen_class
-                )
-
-                screen = cls(
-                    self.state,
-                    name=screen_name
-                )
-
-                manager.add_widget(
-                    screen
-                )
-
-                print(
-                    screen_name.upper(),
-                    "SCREEN READY"
-                )
-
-                return True
-
-
-            except Exception as exc:
-
-                import traceback
-
-                traceback.print_exc()
-
-                print(
-                    screen_name.upper(),
-                    "LOAD ERROR:",
-                    type(exc).__name__,
-                    str(exc)
-                )
-
-                return False
-
-
-        add_screen(
-            "LoginScreen",
-            "mobile.screens.login",
-            "login"
-        )
-
-        add_screen(
-            "DashboardScreen",
-            "mobile.screens.dashboard",
-            "dashboard"
-        )
-
-        add_screen(
-            "ModuleScreen",
-            "mobile.screens.module",
-            "module"
-        )
-
-        add_screen(
-            "UpdateScreen",
-            "mobile.screens.update",
-            "update"
-        )
-
-
-        if manager.has_screen("login"):
-
-            manager.current = "login"
-
-        elif manager.screen_names:
-
-            manager.current = manager.screen_names[0]
-
-
-        print(
-            "AVAILABLE SCREENS:",
-            manager.screen_names
-        )
-
-
-        Clock.schedule_once(
-            lambda dt:
-            print(
-                "FRAHOOSH READY"
-            ),
-            1
-        )
-
-
+        manager.current = "loading" if manager.has_screen("loading") else "login"
+        Clock.schedule_once(lambda *_: print("FRAHOOSH READY", manager.screen_names), 0)
         return manager
 
+    def _add(self, manager, module_path, class_name, screen_name):
+        try:
+            module = __import__(module_path, fromlist=[class_name])
+            cls = getattr(module, class_name)
+            manager.add_widget(cls(self.state, name=screen_name))
+            print(screen_name.upper(), "SCREEN READY")
+        except Exception as exc:
+            import traceback
+            traceback.print_exc()
+            print(screen_name.upper(), "LOAD ERROR:", repr(exc))
 
 
 if __name__ == "__main__":
-
     FrahooshMobileApp().run()
