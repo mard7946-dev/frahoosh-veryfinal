@@ -156,8 +156,21 @@ jobs:
       - name: Build Frahoosh APK
         shell: bash
         run: |
-          set -euxo pipefail
-          buildozer -v android debug
+          set -uo pipefail
+          set +e
+          buildozer -v android debug 2>&1 | tee buildozer.log
+          rc=${PIPESTATUS[0]}
+          echo "Buildozer exit code: $rc"
+          exit "$rc"
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frahoosh-build-log
+          path: buildozer.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Verify APK
         if: success()
