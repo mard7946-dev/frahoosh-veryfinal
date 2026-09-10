@@ -100,7 +100,7 @@ jobs:
           set -euxo pipefail
           test -f buildozer.spec
           sed -i '/^[[:space:]]*android\.skip_update[[:space:]]*=/d' buildozer.spec
-          grep -q '^requirements = python3,kivy,requests,urllib3,arabic-reshaper,python-bidi' buildozer.spec
+          grep -Eq '^requirements = .*python3.*kivy.*requests.*urllib3.*arabic-reshaper.*python-bidi' buildozer.spec
           grep -q '^android.api = 35' buildozer.spec
           grep -q '^android.ndk = 28c' buildozer.spec
           grep -q '^android.ndk_api = 23' buildozer.spec
