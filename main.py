@@ -14,7 +14,12 @@ class FrahooshMobileApp(App):
     def build(self):
         Window.clearcolor = BACKGROUND
         register_fonts()
-        self.state = AppState()
+
+        try:
+            self.state = AppState()
+        except Exception as exc:
+            print("APP STATE INIT ERROR:", repr(exc))
+            self.state = None
 
         manager = ScreenManager(transition=FadeTransition(duration=.15))
         self._add(manager, "mobile.screens.login", "LoginScreen", "login")
