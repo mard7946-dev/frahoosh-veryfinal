@@ -67,7 +67,7 @@ jobs:
             wheel \
             "cython==0.29.37" \
             "buildozer==1.5.0" \
-            "python-for-android==2024.01.21"
+            "python-for-android==2023.10.16"
 
           cython --version
           buildozer --version
